@@ -8,17 +8,47 @@
  ! Visit https://pragprog.com/titles/ksrtc for more book information.
 -->
 <html lang="en">
-<head>
-  <title>WebRTC Starter Example: Peer-to-Peer Video Call</title>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0,shrink-to-fit=no" />
-  <link rel="stylesheet" href="css/screen.css" />
-</head>
-<body>
-<main id="interface">
+  <head>
+    <title>WebRTC Starter Example: Peer-to-Peer Video Call</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1.0,shrink-to-fit=no"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/meyer-reset/2.0/reset.css"
+      integrity="sha512-IJEbgDEF7OeKJRa0MY2PApnyJHRIsgzCveek4ec8VWQ+7KG3ZSKVNYa5xP/Gh0hVP0Mwb+gBsk+GwR3JQGhQNg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="stylesheet" href="css/screen.css" />
+  </head>
+  <body>
+    <main id="interface">
+      <header id="header" role="banner">
+        <h1>Welcome</h1>
+        <button class="join" type="button" id="call-button">Join Call</button>
+      </header>
 
-</main>
+      <article id="videos">
+        <h2 class="preserve-access">Streaming Videos</h2>
 
-<script src="js/main.js"></script>
-</body>
+        <video
+          id="self"
+          autoplay
+          muted
+          playsinline
+          poster="img/placeholder.png"
+        ></video>
+        <video
+          id="peer"
+          autoplay
+          playsinline
+          poster="img/placeholder.png"
+        ></video>
+      </article>
+    </main>
+    <script src="js/main.js"></script>
+  </body>
 </html>
