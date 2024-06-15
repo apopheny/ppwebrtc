@@ -205,6 +205,27 @@ video {
   margin-bottom: 11px;
 }
 
+/* Video Effects */
+.filter-grayscale {
+  filter: grayscale(100%);
+}
+
+.filter-sepia {
+  filter: sepia(100%);
+}
+
+.filter-noir {
+  filter: grayscale(100%) contrast(300%) brightness(60%);
+}
+
+.filter-psychadelic {
+  filter: hue-rotate(180deg) saturate(400%) contrast(200%);
+}
+
+.connected #self {
+  cursor: pointer;
+}
+
 /* Media Queries */
 @media screen and (min-width: 500px) {
   #header {

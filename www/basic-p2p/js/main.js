@@ -23,6 +23,21 @@ const $peer = {
   connection: new RTCPeerConnection($self.rtcConfig),
 };
 
+console.log("The connection state is now", $peer.connection.connectionState);
+
+const VideoFX = class {
+  constructor() {
+    this.filters = ["grayscale", "sepia", "noir", "psychadelic", "none"];
+    this.count = 0;
+  }
+
+  cycleFilter() {
+    const filter = this.filters[this.count % this.filters.length];
+    this.count += 1;
+    return filter;
+  }
+};
+
 /**
  *  Signaling-Channel Setup
  */
@@ -52,6 +67,21 @@ document
  */
 requestUserMedia($self.mediaConstraints);
 
+$self.filters = new VideoFX();
+
+document.querySelector("#self").addEventListener("click", handleSelfVideo);
+
+function handleSelfVideo(event) {
+  if ($peer.connection.connectionState !== "connected") return;
+
+  const filter = `filter-${$self.filters.cycleFilter()}`;
+  const fdc = $peer.connection.createDataChannel(filter);
+  fdc.onclose = () =>
+    console.log(`Remote peer has closed the ${filter} data channel`);
+
+  event.target.className = filter;
+}
+
 /**
  *  User-Interface Functions and Callbacks
  */
@@ -73,7 +103,7 @@ function handleCallButton(event) {
       return;
     }
     default: {
-      console.error("Call Button invalid className!");
+      console.error("Invalid call/leave button className!");
     }
   }
 }
@@ -127,9 +157,23 @@ function resetPeer(peer) {
  *  WebRTC Functions and Callbacks
  */
 function registerRtcCallbacks(peer) {
+  peer.connection.onconnectionstatechange = handleRtcConnectionStateChange;
+  peer.connection.ondatachannel = handleRtcDataChannel;
   peer.connection.onnegotiationneeded = handleRtcConnectionNegotiation;
   peer.connection.onicecandidate = handleRtcIceCandidate;
   peer.connection.ontrack = handleRtcPeerTrack;
+}
+
+function handleRtcDataChannel({ channel }) {
+  const label = channel.label;
+  console.log("Data channel added for", label);
+
+  if (label.startsWith("filter-")) {
+    document.querySelector("#peer").className = label;
+    channel.onopen = () => channel.close();
+  } else {
+    console.log(`Opened ${channel.label} channel with an ID of ${channel.id}`);
+  }
 }
 
 function handleRtcPeerTrack({ track, streams: [stream] }) {
@@ -145,6 +189,12 @@ function handleRtcPeerTrack({ track, streams: [stream] }) {
 /**
  *  Reusable WebRTC Functions and Callbacks
  */
+function handleRtcConnectionStateChange() {
+  const connectionState = $peer.connection.connectionState;
+  console.log("The connection state is now", connectionState);
+  document.body.className = connectionState;
+}
+
 async function handleRtcConnectionNegotiation() {
   $self.isMakingOffer = true;
   console.log("Attempting to make an offer...");
