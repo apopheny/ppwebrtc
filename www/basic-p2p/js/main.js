@@ -84,6 +84,7 @@ function joinCall() {
 
 function leaveCall() {
   sc.close();
+  resetPeer($peer);
 }
 
 /**
@@ -115,6 +116,12 @@ function addStreamingMedia(stream, peer) {
 function establishCallFeatures(peer) {
   registerRtcCallbacks(peer);
   addStreamingMedia($self.mediaStream, peer);
+}
+
+function resetPeer(peer) {
+  displayStream(null, "#peer");
+  peer.connection.close();
+  peer.connection = new RTCPeerConnection($self.rtcConfig);
 }
 /**
  *  WebRTC Functions and Callbacks
@@ -169,7 +176,10 @@ function handleScConnectedPeer() {
   $self.isPolite = true;
 }
 
-function handleScDisconnectedPeer() {}
+function handleScDisconnectedPeer() {
+  resetPeer($peer);
+  establishCallFeatures($peer);
+}
 
 async function handleScSignal({ description, candidate }) {
   if (description) {
