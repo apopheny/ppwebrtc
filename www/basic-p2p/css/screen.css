@@ -192,6 +192,20 @@ button {
   margin-right: 11px;
 }
 
+/* Video Elements */
+video {
+  background-color: #ddd;
+  display: block;
+  max-width: 100%;
+}
+
+#self {
+  width: 50%;
+  max-width: 320px;
+  margin-bottom: 11px;
+}
+
+/* Media Queries */
 @media screen and (min-width: 500px) {
   #header {
     display: flex;
@@ -208,17 +222,3 @@ button {
     margin-bottom: 0;
   }
 }
-
-/* Video Elements */
-video {
-  background-color: #ddd;
-  display: block;
-  max-width: 100%;
-}
-
-#self {
-  width: 50%;
-  max-width: 320px;
-  margin-bottom: 11px;
-}
-/* Media Queries */
