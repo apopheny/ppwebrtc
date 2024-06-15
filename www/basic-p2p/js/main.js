@@ -10,6 +10,18 @@
 /**
  *  Global Variables: $self and $peer
  */
+const $self = {
+  rtcConfig: null,
+  isPolite: false,
+  isMakingOffer: false,
+  isIgnoringOffer: false,
+  isSettingRemoteAnswerPending: false,
+  mediaConstraints: { audio: false, video: true },
+};
+
+const $peer = {
+  connection: new RTCPeerConnection($self.rtcConfig),
+};
 
 /**
  *  Signaling-Channel Setup
@@ -17,7 +29,7 @@
 const namespace = prepareNamespace(globalThis.location.hash, true);
 const sc = io.connect("/" + namespace, { autoConnect: false });
 
-registerScCallbacks();
+registerScCallbacks($self.mediaConstraints);
 
 /**
  * =========================================================================
@@ -38,6 +50,7 @@ document
 /**
  *  User-Media Setup
  */
+requestUserMedia($self.mediaConstraints);
 
 /**
  *  User-Interface Functions and Callbacks
@@ -76,15 +89,43 @@ function leaveCall() {
 /**
  *  User-Media Functions
  */
+function displayStream(stream, selector) {
+  document.querySelector(selector).srcObject = stream;
+}
+
+async function requestUserMedia(mediaConstraints) {
+  $self.mediaStream = new MediaStream();
+  $self.media = await navigator.mediaDevices.getUserMedia(mediaConstraints);
+  $self.mediaStream.addTrack($self.media.getTracks().at(0));
+
+  displayStream($self.mediaStream, "#self");
+}
+
+function addStreamingMedia(stream, peer) {
+  if (stream) {
+    for (let track of stream.getTracks()) {
+      peer.connection.addTrack(track, stream);
+    }
+  }
+}
 
 /**
  *  Call Features & Reset Functions
  */
-
+function establishCallFeatures(peer) {
+  registerRtcCallbacks(peer);
+  addStreamingMedia($self.mediaStream, peer);
+}
 /**
  *  WebRTC Functions and Callbacks
  */
+function registerRtcCallbacks(peer) {
+  peer.connection.onnegotiationneeded = handleRtcConnectionNegotiation;
+  peer.connection.onicecandidate = handleRtcIceCandidate;
+  peer.connection.ontrack = handleRtcPeerTrack;
+}
 
+function handleRtcPeerTrack() {}
 /**
  * =========================================================================
  *  End Application-Specific Code
@@ -94,7 +135,18 @@ function leaveCall() {
 /**
  *  Reusable WebRTC Functions and Callbacks
  */
+async function handleRtcConnectionNegotiation() {
+  $self.isMakingOffer = true;
+  console.log("Attempting to make an offer...");
+  await $peer.connection.setLocalDescription();
+  sc.emit("signal", { description: $peer.connection.localDescription });
+  $self.isMakingOffer = false;
+}
 
+function handleRtcIceCandidate({ candidate }) {
+  console.log("Attempting to handle an ICE candidate...");
+  sc.emit("signal", { candidate });
+}
 /**
  *  Signaling-Channel Functions and Callbacks
  */
@@ -107,11 +159,22 @@ function registerScCallbacks() {
 
 function handleScConnect() {
   console.log("Successfully connected to the signaling server!");
+  establishCallFeatures($peer);
 }
 
-function handleScConnectedPeer() {}
+function handleScConnectedPeer() {
+  $self.isPolite = true;
+}
+
 function handleScDisconnectedPeer() {}
-function handleScSignal() {}
+
+async function handleScSignal({ description, candidate }) {
+  if (description) {
+    //todo
+  } else if (candidate) {
+    //todo
+  }
+}
 
 /**
  *  Utility Functions
