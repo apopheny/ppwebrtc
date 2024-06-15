@@ -125,7 +125,10 @@ function registerRtcCallbacks(peer) {
   peer.connection.ontrack = handleRtcPeerTrack;
 }
 
-function handleRtcPeerTrack() {}
+function handleRtcPeerTrack({ track, streams: [stream] }) {
+  console.log("Attempt to display media from peer...");
+  displayStream(stream, "#peer");
+}
 /**
  * =========================================================================
  *  End Application-Specific Code
@@ -170,9 +173,31 @@ function handleScDisconnectedPeer() {}
 
 async function handleScSignal({ description, candidate }) {
   if (description) {
-    //todo
+    const readyForOffer =
+      !$self.isMakingOffer &&
+      ($peer.connection.signalingState === "stable" ||
+        $self.isSettingRemoteAnswerPending);
+
+    const offerCollision = description.type === "offer" && !readyForOffer;
+    $self.isIgnoringOffer = !$self.isPolite && offerCollision;
+    if ($self.isIgnoringOffer) return;
+
+    $self.isSettingRemoteAnswerPending = description.type === "answer";
+    await $peer.connection.setRemoteDescription(description);
+    $self.isSettingRemoteAnswerPending = false;
+
+    if (description.type === "offer") {
+      await $peer.connection.setLocalDescription();
+      sc.emit("signal", { description: $peer.connection.localDescription });
+    }
   } else if (candidate) {
-    //todo
+    try {
+      await $peer.connection.addIceCandidate(candidate);
+    } catch (error) {
+      if (!$self.isIgnoringOffer && candidate.candidate.length > 1) {
+        console.error("Unable to add ICE candidate for peer:", error);
+      }
+    }
   }
 }
 
