@@ -118,7 +118,7 @@ function leaveCall() {
 }
 
 /**
- *  User-Media Functions
+ *  User-Media and Data-Channel Functions
  */
 function displayStream(stream, selector) {
   document.querySelector(selector).srcObject = stream;
@@ -140,11 +140,52 @@ function addStreamingMedia(stream, peer) {
   }
 }
 
+document
+  .querySelector("#chat-form")
+  .addEventListener("submit", handleMessageForm);
+
+function appendMessage(sender, logElement, message) {
+  const log = document.querySelector(logElement);
+  const li = document.createElement("li");
+  li.className = sender;
+  li.innerText = message;
+  log.appendChild(li);
+
+  if (log.scrollTo) {
+    log.scrollTo({ top: log.scrollHeight, behavior: "smooth" });
+  } else {
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+function handleMessageForm(event) {
+  event.preventDefault();
+  const input = document.querySelector("#chat-msg");
+  const message = input.value;
+  if (!message) return;
+
+  appendMessage("self", "#chat-log", message);
+  $peer.chatChannel.send(message);
+  input.value = "";
+}
+
+function addChatChannel(peer) {
+  peer.chatChannel = peer.connection.createDataChannel("text chat", {
+    negotiated: true,
+    id: 100,
+  });
+
+  peer.chatChannel.onmessage = (event) =>
+    appendMessage("peer", "#chat-log", event.data);
+  peer.chatChannel.onclose = () => console.log("Chat channel closed");
+}
+
 /**
  *  Call Features & Reset Functions
  */
 function establishCallFeatures(peer) {
   registerRtcCallbacks(peer);
+  addChatChannel(peer);
   addStreamingMedia($self.mediaStream, peer);
 }
 
@@ -180,6 +221,7 @@ function handleRtcPeerTrack({ track, streams: [stream] }) {
   console.log("Attempt to display media from peer...");
   displayStream(stream, "#peer");
 }
+
 /**
  * =========================================================================
  *  End Application-Specific Code
