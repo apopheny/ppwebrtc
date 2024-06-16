@@ -84,7 +84,7 @@ function sendOrQueueMessage(peer, message, push = true) {
   }
 
   try {
-    chatChannel.send(message);
+    chatChannel.send(JSON.stringify(message));
   } catch (error) {
     console.error("Error sending message:", error);
     queueMessage(message, push);
@@ -170,7 +170,8 @@ function appendMessage(sender, logElement, message) {
   const log = document.querySelector(logElement);
   const li = document.createElement("li");
   li.className = sender;
-  li.innerText = message;
+  li.innerText = message.text;
+  li.dataset.timestamp = message.timestamp;
   log.appendChild(li);
 
   if (log.scrollTo) {
@@ -183,8 +184,10 @@ function appendMessage(sender, logElement, message) {
 function handleMessageForm(event) {
   event.preventDefault();
   const input = document.querySelector("#chat-msg");
-  const message = input.value;
-  if (!message) return;
+  const message = {};
+  message.text = input.value;
+  message.timestamp = Date.now();
+  if (!message.text) return;
 
   appendMessage("self", "#chat-log", message);
 
@@ -198,8 +201,21 @@ function addChatChannel(peer) {
     id: 100,
   });
 
-  peer.chatChannel.onmessage = (event) =>
-    appendMessage("peer", "#chat-log", event.data);
+  peer.chatChannel.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    if (!message.id) {
+      const response = {
+        id: message.timestamp,
+        timestamp: Date.now(),
+      };
+
+      sendOrQueueMessage(peer, response);
+      appendMessage("peer", "#chat-log", message);
+    } else {
+      handleResponse(message);
+    }
+  };
+
   peer.chatChannel.onclose = () => console.log("Chat channel closed");
 
   peer.chatChannel.onopen = () => {
@@ -213,6 +229,18 @@ function addChatChannel(peer) {
       sendOrQueueMessage(peer, message, false);
     }
   };
+}
+
+function handleResponse(response) {
+  const sentItem = document.querySelector(
+    `#chat-log *[data-timestamp="${response.id}"]`
+  );
+  const classes = ["received"];
+  if (response.timestamp - response.id > 1000) {
+    classes.push("delayed");
+  }
+
+  sentItem.classList.add(...classes);
 }
 
 /**
