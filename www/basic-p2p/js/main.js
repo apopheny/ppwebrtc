@@ -69,6 +69,28 @@ requestUserMedia($self.mediaConstraints);
 
 $self.filters = new VideoFX();
 
+$self.messageQueue = [];
+
+function queueMessage(message, push = true) {
+  if (push) $self.messageQueue.push(message);
+  else $self.messageQueue.unshift(message);
+}
+
+function sendOrQueueMessage(peer, message, push = true) {
+  const chatChannel = peer.chatChannel;
+  if (!chatChannel || chatChannel.readyState !== "open") {
+    queueMessage(message, push);
+    return;
+  }
+
+  try {
+    chatChannel.send(message);
+  } catch (error) {
+    console.error("Error sending message:", error);
+    queueMessage(message, push);
+  }
+}
+
 document.querySelector("#self").addEventListener("click", handleSelfVideo);
 
 function handleSelfVideo(event) {
@@ -165,7 +187,8 @@ function handleMessageForm(event) {
   if (!message) return;
 
   appendMessage("self", "#chat-log", message);
-  $peer.chatChannel.send(message);
+
+  sendOrQueueMessage($peer, message);
   input.value = "";
 }
 
@@ -178,6 +201,18 @@ function addChatChannel(peer) {
   peer.chatChannel.onmessage = (event) =>
     appendMessage("peer", "#chat-log", event.data);
   peer.chatChannel.onclose = () => console.log("Chat channel closed");
+
+  peer.chatChannel.onopen = () => {
+    console.log("Chat channel opened.");
+    while (
+      $self.messageQueue.length > 0 &&
+      peer.chatChannel.readyState === "open"
+    ) {
+      console.log("Attempting to send a message from the queue...");
+      let message = $self.messageQueue.shift();
+      sendOrQueueMessage(peer, message, false);
+    }
+  };
 }
 
 /**
